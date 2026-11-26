@@ -2,7 +2,7 @@
 
 这是电影院票务预订管理系统课程项目的协作仓库。当前数据库契约为 **v1.1 最终版**，已经把成员 A 的需求分析、E-R 设计和关系模式，与成员 B 的 Java、Maven、JDBC 项目整合到同一份可执行项目中。
 
-当前已经完成数据库设计定稿、建表与测试数据脚本、Java 编译和 MySQL 实际连接验证。DAO 中除连接计数示例外仍以接口骨架为主，购票和退票事务尚未实现，不应把它们作为已完成功能展示。
+当前已经完成数据库设计定稿、建表与测试数据脚本，以及第二周 Java 实体、核心 DAO、场次初始化事务和命令行查询。完整购票和退票事务仍未实现，不应把它们作为已完成功能展示。
 
 ## 成员分工
 
@@ -58,6 +58,7 @@ CinemaTicketSystem
 ├── docs
 │   ├── schema-contract.md
 │   ├── schema-review-v1.1.md
+│   ├── week2-b-delivery.md
 │   ├── er-diagram-v1.png
 │   ├── week1-handoff.md
 │   ├── week1-db-connection-success.jpg
@@ -72,8 +73,11 @@ CinemaTicketSystem
 ├── src/main/java/edu/course/cinema
 │   ├── Main.java
 │   ├── util/DBUtil.java
+│   ├── model
 │   ├── dao
 │   └── service
+├── src/test/java/edu/course/cinema/dao
+│   └── CoreDaoIntegrationTest.java
 └── tools
     └── build_week1_report.py
 ```
@@ -82,6 +86,7 @@ CinemaTicketSystem
 
 - `docs/schema-contract.md`：A 与 B 共同遵守的数据库接口约定 v1.1。
 - `docs/schema-review-v1.1.md`：A 分支变更、联合审查修正和 MySQL 8.4 验收记录。
+- `docs/week2-b-delivery.md`：B 的第二周 Java/JDBC 实现范围、测试结果与后续边界。
 - `docs/er-diagram-v1.png`：修订后的 8 表 E-R 图。
 - `docs/关系模式与规范化分析.md` / `.docx`：8 张表关系模式、函数依赖、3NF 判定与规范化边界（第二周定稿）。
 - `docs/电影院票务预订管理系统_第1周综合报告.docx`：第一周完整报告和验收结论。
@@ -89,6 +94,7 @@ CinemaTicketSystem
 - `sql/insert_data.sql`：用于独立空测试库的完整测试数据，每张核心表不少于 10 条记录。
 - `sql/query.sql`：8 条查询（单表、连接、分组、嵌套和综合查询，第二周新增）。
 - `src/main/java`：B 负责的 Java/JDBC 工程。
+- `src/test/java`：B 的 JDBC 集成测试，需显式指定独立测试库后运行。
 - `docs/week1-db-connection-success.jpg`：Java 连接 MySQL 成功的验收记录。
 
 ## 第 1 周完成情况
@@ -179,6 +185,16 @@ mvn clean compile exec:java
 
 ## 第 2 周任务
 
+### 当前进度
+
+- [x] A 完成关系模式、规范化分析、完整测试数据和 8 条课程查询，并经 A/B 联合审查定稿为 v1.1。
+- [x] B 完成 `User`、`Movie`、`Hall`、`Seat`、`Screening` 实体和数据库状态枚举。
+- [x] B 完成 `UserDAO`、`MovieDAO`、`HallDAO`、`SeatDAO`、`ScreeningDAO` 和场次座位初始化 DAO。
+- [x] B 完成电影列表、按日期查询场次、查询可售座位、管理员新增电影和新增场次命令行功能。
+- [x] 新增场次会在一个事务中完成冲突检查、场次插入和全部启用座位初始化。
+- [x] MySQL 8.4 集成测试覆盖正常路径、空结果、唯一约束、外键失败、时间冲突和可售座位。
+- [ ] 完整的购票、支付、退票与并发锁座留到后续周次实现。
+
 ### 成员 A
 
 1. 在 MySQL 8.4 LTS 环境再次执行建表和测试数据脚本，记录兼容性结果。
@@ -205,6 +221,20 @@ mvn clean compile exec:java
 - 电影、场次和可售座位查询可以从命令行实际运行。
 - 不出现字符串拼接 SQL、硬编码密码或未关闭 JDBC 资源。
 - 数据库结构如有变更，A 与 B 已共同更新 SQL、契约和 README。
+
+### 运行数据库集成测试
+
+集成测试会写入数据，只能指向按本仓库 SQL 初始化的独立测试库。配置测试库连接后运行：
+
+```bash
+export CINEMA_RUN_DB_TESTS=true
+export CINEMA_DB_URL='jdbc:mysql://localhost:3306/cinema_ticket?useUnicode=true&characterEncoding=utf8&connectionTimeZone=LOCAL'
+export CINEMA_DB_USER='cinema_app'
+export CINEMA_DB_PASSWORD='你的测试库密码'
+mvn clean test
+```
+
+未设置 `CINEMA_RUN_DB_TESTS=true` 时，数据库集成测试会跳过，普通编译仍可执行。
 
 ## Git 协作建议
 
