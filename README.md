@@ -1,6 +1,6 @@
 # 电影院票务预订管理系统
 
-这是电影院票务预订管理系统课程项目的协作仓库。当前版本为**第 1 周综合交付版 v1.0**，已经把成员 A 的需求分析、E-R 设计和数据库关系模式，与成员 B 的 Java、Maven、JDBC 项目骨架整合到同一份可执行项目中。
+这是电影院票务预订管理系统课程项目的协作仓库。当前数据库契约为 **v1.1 最终版**，已经把成员 A 的需求分析、E-R 设计和关系模式，与成员 B 的 Java、Maven、JDBC 项目整合到同一份可执行项目中。
 
 当前已经完成数据库设计定稿、建表与测试数据脚本、Java 编译和 MySQL 实际连接验证。DAO 中除连接计数示例外仍以接口骨架为主，购票和退票事务尚未实现，不应把它们作为已完成功能展示。
 
@@ -30,6 +30,15 @@ A 不需要逐行审查 B 的全部 Java 实现，但必须审核数据库字段
 | “电影名称同一时期唯一”缺少可执行的“时期”字段 | 改为 `(title, release_date)` 组合唯一 | 将模糊规则转换为可以在 MySQL 中执行的唯一约束 |
 | 原交付没有最终建表脚本和最小测试数据 | 新增 `sql/create_tables.sql` 和 `sql/insert_data.sql` | 让 A 的关系模式可以实际建库，也让 B 能直接进行 JDBC 联调 |
 
+### v1.1 变更说明（成员 A 提出，A/B 审查后确认）
+
+| 文件 | 修改内容 | 原因和影响 |
+|---|---|---|
+| `sql/create_tables.sql` | `movies.release_date` 由 `NULL` 改为 `NOT NULL` | MySQL 唯一索引允许多个 `NULL`，原设计下同名且未定档的电影可以重复插入；改为非空后 `(title, release_date)` 组合唯一约束才真正生效 |
+| `docs/schema-contract.md` | 版本号升级为 v1.1，并在 `movies` 约束中补充 `release_date` 非空说明 | 按上方第 41 条协作要求，表结构变更必须同时更新契约与 SQL，避免 Java 与数据库再次不一致 |
+
+影响范围：新增电影时必须填写上映日期（Java 侧 `MovieDAO.create` 的 `LocalDate` 参数为必填）。B 审查时进一步补齐了全部场次座位初始化、退款历史票、结束场次票状态和统计口径，并修正了规范化报告中的候选码与座位快照解释。本版确认后合并到 `main`，作为第二周 Java 开发的唯一数据库基线。
+
 ### A 需要重点确认的文件
 
 1. `docs/schema-contract.md`：检查实体、字段、状态流转、退票和锁座规则是否符合需求。
@@ -48,14 +57,18 @@ CinemaTicketSystem
 ├── pom.xml
 ├── docs
 │   ├── schema-contract.md
+│   ├── schema-review-v1.1.md
 │   ├── er-diagram-v1.png
 │   ├── week1-handoff.md
 │   ├── week1-db-connection-success.jpg
+│   ├── 关系模式与规范化分析.md
+│   ├── 关系模式与规范化分析.docx
 │   └── 电影院票务预订管理系统_第1周综合报告.docx
 ├── sql
 │   ├── README.md
 │   ├── create_tables.sql
-│   └── insert_data.sql
+│   ├── insert_data.sql
+│   └── query.sql
 ├── src/main/java/edu/course/cinema
 │   ├── Main.java
 │   ├── util/DBUtil.java
@@ -67,11 +80,14 @@ CinemaTicketSystem
 
 主要文件说明：
 
-- `docs/schema-contract.md`：A 与 B 共同遵守的数据库接口约定 v1.0。
+- `docs/schema-contract.md`：A 与 B 共同遵守的数据库接口约定 v1.1。
+- `docs/schema-review-v1.1.md`：A 分支变更、联合审查修正和 MySQL 8.4 验收记录。
 - `docs/er-diagram-v1.png`：修订后的 8 表 E-R 图。
+- `docs/关系模式与规范化分析.md` / `.docx`：8 张表关系模式、函数依赖、3NF 判定与规范化边界（第二周定稿）。
 - `docs/电影院票务预订管理系统_第1周综合报告.docx`：第一周完整报告和验收结论。
 - `sql/create_tables.sql`：创建数据库、8 张表、索引、外键和检查约束。
-- `sql/insert_data.sql`：可重复执行的最小联调数据。
+- `sql/insert_data.sql`：用于独立空测试库的完整测试数据，每张核心表不少于 10 条记录。
+- `sql/query.sql`：8 条查询（单表、连接、分组、嵌套和综合查询，第二周新增）。
 - `src/main/java`：B 负责的 Java/JDBC 工程。
 - `docs/week1-db-connection-success.jpg`：Java 连接 MySQL 成功的验收记录。
 

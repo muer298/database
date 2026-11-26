@@ -1,6 +1,8 @@
-# A/B 数据库接口约定 v1.0
+# A/B 数据库接口约定 v1.1
 
-状态：第 1 周综合版定稿。成员 A 负责业务规则与关系模式，成员 B 依据本约定实现 JDBC、DAO 和事务服务。后续如需修改字段，必须由 A、B 同时确认并更新版本号。
+状态：在第 1 周综合版基础上升级。成员 A 负责业务规则与关系模式，成员 B 依据本约定实现 JDBC、DAO 和事务服务。后续如需修改字段，必须由 A、B 同时确认并更新版本号。
+
+v1.1 变更（成员 A 提出，经 A/B 联合审查确认）：`movies.release_date` 由可空改为非空，使 `(title, release_date)` 组合唯一约束真正生效；对应 SQL 见 `sql/create_tables.sql`。
 
 ## 1. 统一设计结论
 
@@ -18,7 +20,7 @@
 | 表 | 主键 | 主要字段与约束 |
 |---|---|---|
 | `users` | `user_id` | `username` 唯一；`phone`、`email` 可空且分别唯一；`role`、`account_status` 有状态约束 |
-| `movies` | `movie_id` | `(title, release_date)` 唯一；时长大于 0；基准票价不小于 0 |
+| `movies` | `movie_id` | `(title, release_date)` 唯一且 `release_date` 非空；时长大于 0；基准票价不小于 0 |
 | `halls` | `hall_id` | `hall_name` 唯一；保存排数与列数，总座位数由 `seats` 统计 |
 | `seats` | `seat_id` | 外键 `hall_id`；`(hall_id, seat_row, seat_column)` 唯一 |
 | `screenings` | `screening_id` | 外键 `movie_id`、`hall_id`；结束时间晚于开始时间；票价不小于 0 |

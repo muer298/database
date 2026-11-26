@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS movies (
   actors VARCHAR(500) NULL,
   genre VARCHAR(50) NULL,
   duration_minutes SMALLINT UNSIGNED NOT NULL,
-  release_date DATE NULL,
+  release_date DATE NOT NULL,
   base_price DECIMAL(10,2) NOT NULL,
   synopsis TEXT NULL,
   poster_url VARCHAR(500) NULL,
