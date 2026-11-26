@@ -39,7 +39,8 @@ SELECT sc.screening_id, m.title, h.hall_name, sc.start_time,
 FROM screenings sc
 JOIN movies m     ON sc.movie_id = m.movie_id
 JOIN halls h      ON sc.hall_id = h.hall_id
-LEFT JOIN tickets t ON t.screening_id = sc.screening_id AND t.ticket_status = 'VALID'
+LEFT JOIN tickets t ON t.screening_id = sc.screening_id
+                   AND t.ticket_status IN ('VALID', 'USED')
 GROUP BY sc.screening_id, m.title, h.hall_name, sc.start_time
 ORDER BY sold_count DESC;
 
@@ -51,7 +52,7 @@ SELECT m.title,
 FROM tickets t
 JOIN screenings sc ON t.screening_id = sc.screening_id
 JOIN movies m      ON sc.movie_id = m.movie_id
-WHERE t.ticket_status = 'VALID'
+WHERE t.ticket_status IN ('VALID', 'USED')
 GROUP BY m.movie_id, m.title
 HAVING SUM(t.ticket_price) >= 80.00
 ORDER BY box_office DESC;
@@ -64,7 +65,7 @@ WHERE u.user_id IN (
     SELECT o.user_id
     FROM orders o
     JOIN screenings sc ON o.screening_id = sc.screening_id
-    WHERE sc.movie_id = (SELECT movie_id FROM movies WHERE title = '星际穿越')
+    WHERE sc.movie_id IN (SELECT movie_id FROM movies WHERE title = '星际穿越')
 )
 ORDER BY u.user_id;
 
@@ -81,7 +82,7 @@ ORDER BY o.ordered_at DESC;
 
 -- ---------- 【复杂业务查询】多表连接 + 聚合 + 上座率 ----------
 -- 查询每个场次的上座率（SOLD 座位数 / 影厅实际座位数）
--- 影厅总座位数不存字段，改用 seats 实际记录数统计（对齐 v1.0 约定）
+-- 影厅总座位数不存字段，改用 seats 实际记录数统计（对齐 v1.1 约定）
 SELECT sc.screening_id,
        m.title,
        h.hall_name,

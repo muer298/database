@@ -22,12 +22,12 @@ mysql -u root -p < sql/query.sql
 
 - `create_tables.sql` 中 `movies.release_date` 为 `NOT NULL`，保证 `(title, release_date)` 组合唯一约束生效（v1.1 变更）。
 - `insert_data.sql` 按外键依赖顺序插入：先基础表（用户、电影、影厅、座位），再场次、订单、座位占用，最后电影票；每张票都有对应的 `seat_occupancies` 记录，避免外键失败。
-- `insert_data.sql` 可重复执行（`INSERT IGNORE`），不会破坏已有业务数据。
+- `insert_data.sql` 面向由 `create_tables.sql` 新建的空测试库；同一套测试数据可重复执行，但不要在已混入其他业务数据且主键可能冲突的库中执行。
 - `query.sql` 的 8 条查询覆盖：单表条件查询 2 条、多表连接查询 2 条、分组统计 1 条、嵌套查询 2 条、复杂业务查询 1 条。
 
 ## 注意事项
 
-- 脚本不会删除已有表或历史数据。
+- 脚本不会删除已有表或历史数据，但测试数据使用固定主键，仅适用于课程项目的独立测试库。
 - 表已存在但结构不同时，不要强行覆盖，应先由 A、B 确认迁移方案。
 - 应用程序密码只能通过环境变量设置，不得写入 SQL、Java 源码或 Git 仓库。
 - 执行截图保存在 `docs/` 下，作为第 2 周验收材料。

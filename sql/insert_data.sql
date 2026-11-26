@@ -3,7 +3,8 @@
 -- 说明：字段名/状态/金额/主键类型均按复数表名 + 英文枚举；
 --       顺序遵循外键依赖：users/movies/halls → seats/screenings
 --       → orders → seat_occupancies → tickets。
---       INSERT IGNORE 支持重复执行，不覆盖历史数据。
+--       本脚本用于新建的空测试库；对同一套测试数据可重复执行。
+--       不要在已混入其他业务数据且主键可能冲突的数据库中执行。
 -- ============================================================
 USE cinema_ticket;
 
@@ -102,51 +103,60 @@ VALUES
   (7,'OD202612250007',7,7,48.00,'2026-12-24 16:15:00','2026-12-24 16:16:00','PAID'),
   (8,'OD202612260008',8,8,38.00,'2026-12-25 17:25:00','2026-12-25 17:26:00','PAID'),
   (9,'OD202612260009',9,9,96.00,'2026-12-25 18:35:00','2026-12-25 18:36:00','PAID'),
-  (10,'OD202612260010',10,10,45.00,'2026-12-25 19:45:00',NULL,'REFUNDED');
+  (10,'OD202612260010',10,10,45.00,'2026-12-25 19:45:00','2026-12-25 19:46:00','REFUNDED');
 
--- ---------- 7. seat_occupancies（18 条：14 张票对应的 SOLD + 4 条 AVAILABLE）----------
+-- ---------- 7. seat_occupancies（100 条：每个场次对应影厅的全部启用座位）----------
 -- 重要：tickets 通过 (screening_id, seat_id) 复合外键引用本表，必须先插本表。
 --       AVAILABLE 时 order_id 必须为 NULL（ck_occupancies_owner）。
 INSERT IGNORE INTO seat_occupancies
   (screening_id, seat_id, order_id, occupancy_status, locked_at, lock_expires_at)
-VALUES
-  (1,1,1,'SOLD','2026-11-23 10:05:00',NULL),
-  (1,2,1,'SOLD','2026-11-23 10:05:00',NULL),
-  (1,3,4,'SOLD','2026-11-23 13:30:00',NULL),
-  (2,11,2,'SOLD','2026-11-23 11:10:00',NULL),
-  (2,12,2,'SOLD','2026-11-23 11:10:00',NULL),
-  (3,21,3,'SOLD','2026-12-23 12:20:00',NULL),
-  (3,22,3,'SOLD','2026-12-23 12:20:00',NULL),
-  (5,41,5,'SOLD','2026-12-24 14:40:00',NULL),
-  (6,51,6,'SOLD','2026-12-24 15:50:00',NULL),
-  (6,52,6,'SOLD','2026-12-24 15:50:00',NULL),
-  (7,61,7,'SOLD','2026-12-24 16:15:00',NULL),
-  (8,71,8,'SOLD','2026-12-25 17:25:00',NULL),
-  (9,81,9,'SOLD','2026-12-25 18:35:00',NULL),
-  (9,82,9,'SOLD','2026-12-25 18:35:00',NULL),
-  (10,91,NULL,'AVAILABLE',NULL,NULL),
-  (10,92,NULL,'AVAILABLE',NULL,NULL),
-  (3,23,NULL,'AVAILABLE',NULL,NULL),
-  (3,24,NULL,'AVAILABLE',NULL,NULL);
+SELECT sc.screening_id, s.seat_id, NULL, 'AVAILABLE', NULL, NULL
+FROM screenings sc
+JOIN seats s ON s.hall_id = sc.hall_id
+WHERE s.use_status = 'ENABLED';
 
--- ---------- 8. tickets（14 条；screening+seat 组合已在占用表存在）----------
+-- 将仍有效的出票座位更新为 SOLD；已退款订单 10 的座位保持 AVAILABLE。
+UPDATE seat_occupancies so
+JOIN (
+  SELECT 1 screening_id, 1 seat_id, 1 order_id, '2026-11-23 10:05:00' locked_at UNION ALL
+  SELECT 1,2,1,'2026-11-23 10:05:00' UNION ALL
+  SELECT 1,3,4,'2026-11-23 13:30:00' UNION ALL
+  SELECT 2,11,2,'2026-11-23 11:10:00' UNION ALL
+  SELECT 2,12,2,'2026-11-23 11:10:00' UNION ALL
+  SELECT 3,21,3,'2026-12-23 12:20:00' UNION ALL
+  SELECT 3,22,3,'2026-12-23 12:20:00' UNION ALL
+  SELECT 5,41,5,'2026-12-24 14:40:00' UNION ALL
+  SELECT 6,51,6,'2026-12-24 15:50:00' UNION ALL
+  SELECT 6,52,6,'2026-12-24 15:50:00' UNION ALL
+  SELECT 7,61,7,'2026-12-24 16:15:00' UNION ALL
+  SELECT 8,71,8,'2026-12-25 17:25:00' UNION ALL
+  SELECT 9,81,9,'2026-12-25 18:35:00' UNION ALL
+  SELECT 9,82,9,'2026-12-25 18:35:00'
+) sold ON sold.screening_id = so.screening_id AND sold.seat_id = so.seat_id
+SET so.order_id = sold.order_id,
+    so.occupancy_status = 'SOLD',
+    so.locked_at = sold.locked_at,
+    so.lock_expires_at = NULL;
+
+-- ---------- 8. tickets（15 条；含一张退款历史票）----------
 INSERT IGNORE INTO tickets
   (ticket_id, ticket_number, order_id, screening_id, seat_id, row_number_snapshot, column_number_snapshot, ticket_price, ticket_status, issued_at)
 VALUES
-  (1,'TK001',1,1,1,1,1,45.00,'VALID','2026-11-23 10:06:00'),
-  (2,'TK002',1,1,2,1,2,45.00,'VALID','2026-11-23 10:06:00'),
-  (3,'TK003',2,2,11,1,1,35.00,'VALID','2026-11-23 11:11:00'),
-  (4,'TK004',2,2,12,1,2,35.00,'VALID','2026-11-23 11:11:00'),
+  (1,'TK001',1,1,1,1,1,45.00,'USED','2026-11-23 10:06:00'),
+  (2,'TK002',1,1,2,1,2,45.00,'USED','2026-11-23 10:06:00'),
+  (3,'TK003',2,2,11,1,1,35.00,'USED','2026-11-23 11:11:00'),
+  (4,'TK004',2,2,12,1,2,35.00,'USED','2026-11-23 11:11:00'),
   (5,'TK005',3,3,21,1,1,50.00,'VALID','2026-12-23 12:21:00'),
   (6,'TK006',3,3,22,1,2,50.00,'VALID','2026-12-23 12:21:00'),
-  (7,'TK007',4,1,3,1,3,45.00,'VALID','2026-11-23 13:31:00'),
+  (7,'TK007',4,1,3,1,3,45.00,'USED','2026-11-23 13:31:00'),
   (8,'TK008',5,5,41,1,1,50.00,'VALID','2026-12-24 14:41:00'),
   (9,'TK009',6,6,51,1,1,45.00,'VALID','2026-12-24 15:51:00'),
   (10,'TK010',6,6,52,1,2,45.00,'VALID','2026-12-24 15:51:00'),
   (11,'TK011',7,7,61,1,1,48.00,'VALID','2026-12-24 16:16:00'),
   (12,'TK012',8,8,71,1,1,38.00,'VALID','2026-12-25 17:26:00'),
   (13,'TK013',9,9,81,1,1,48.00,'VALID','2026-12-25 18:36:00'),
-  (14,'TK014',9,9,82,1,2,48.00,'VALID','2026-12-25 18:36:00');
+  (14,'TK014',9,9,82,1,2,48.00,'VALID','2026-12-25 18:36:00'),
+  (15,'TK015',10,10,91,1,1,45.00,'REFUNDED','2026-12-25 19:46:00');
 
 -- ============================================================
 -- 测试数据初始化完成

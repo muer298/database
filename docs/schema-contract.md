@@ -2,7 +2,7 @@
 
 状态：在第 1 周综合版基础上升级。成员 A 负责业务规则与关系模式，成员 B 依据本约定实现 JDBC、DAO 和事务服务。后续如需修改字段，必须由 A、B 同时确认并更新版本号。
 
-v1.1 变更（成员 A 提出，待 Pull Request 双方确认）：`movies.release_date` 由可空改为非空，使 `(title, release_date)` 组合唯一约束真正生效；对应 SQL 见 `sql/create_tables.sql`。
+v1.1 变更（成员 A 提出，经 A/B 联合审查确认）：`movies.release_date` 由可空改为非空，使 `(title, release_date)` 组合唯一约束真正生效；对应 SQL 见 `sql/create_tables.sql`。
 
 ## 1. 统一设计结论
 
